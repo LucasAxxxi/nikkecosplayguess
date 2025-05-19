@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cosplay猜角色游戏</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Arial', sans-serif;
+    }
+    
+    body {
+      background-color: #f0f8ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      width: 100vw;
+      max-width: 100vw;
+      border-radius: 0;
+      background-color: white;
+      box-shadow: none;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .cover-screen, .game-screen, .result-screen {
+      width: 100%;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    
+    .cover-screen {
+      min-height: 100vh;
+      background: url('images/cover.jpg') center center/contain no-repeat;
+      color: white;
+      justify-content: flex-start;
+      position: relative;
+      align-items: center;
+    }
+    
+    .cover-screen > * {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .cover-img { 
+      display: none; 
+    }
+    
+    .game-screen, .result-screen {
+      display: none;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .btn {
+      background-color: white;
+      color: #6a11cb;
+      border: none;
+      padding: 12px 30px;
+      font-size: 1.2rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .btn:active {
+      transform: translateY(1px);
+    }
+    
+    .cosplay-image-wrapper {
+      position: relative;
+      width: 700px; /* 放大主图容器 */
+      height: 700px; /* 放大主图容器 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0;
+      overflow: hidden;
+    }
+    .cosplay-image,
+    .cosplay-border {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: auto;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      transform: translate(-50%, -50%);
+      object-fit: contain;
+      border-radius: 18px;
+    }
+    .cosplay-border {
+      z-index: 2;
+      pointer-events: none;
+      border: none;
+      box-shadow: none;
+    }
+    .cosplay-image {
+      z-index: 1;
+      box-shadow: 0 8px 32px rgba(80, 80, 160, 0.10), 0 2px 8px rgba(0,0,0,0.10);
+      border: 2.5px solid #e0e7ff;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    
+    .options {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 40px; /* 调高，防止按钮超出显示范围 */
+      display: flex;
+      justify-content: center;
+      gap: 16px; /* 减小间距 */
+      flex-wrap: wrap;
+      z-index: 2;
+    }
+    
+    .option {
+      width: 56px; /* 原80px的70% */
+      min-height: 90px; /* 原150px的70% */
+      /* 适当减小卡片尺寸 */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      background: linear-gradient(135deg, #f0f0f0 60%, #e0e7ff 100%);
+      border-radius: 16px;
+      padding: 8px 3px 3px 3px;
+      box-shadow: 0 4px 16px rgba(80, 80, 160, 0.10), 0 1.5px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+      border: 2px solid transparent;
+    }
+    
+    .option:hover {
+      transform: scale(1.08) translateY(-2px);
+      background: linear-gradient(135deg, #e0e7ff 60%, #f0f0f0 100%);
+      box-shadow: 0 8px 24px rgba(80, 80, 160, 0.18), 0 2px 8px rgba(0,0,0,0.12);
+    }
+    
+    .option.selected-correct {
+      border-color: #3ecf8e;
+      box-shadow: 0 0 0 4px #d2fbe3, 0 8px 24px rgba(80, 160, 80, 0.18);
+    }
+    
+    .option.selected-incorrect {
+      border-color: #ff4d4f;
+      box-shadow: 0 0 0 4px #ffeaea, 0 8px 24px rgba(255, 77, 79, 0.18);
+    }
+    
+    .option img {
+      width: 42px; /* 原60px的70% */
+      height: 84px; /* 原120px的70% */
+      border-radius: 12px;
+      object-fit: cover;
+      margin-bottom: 5px;
+      border: 2.5px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .option-name {
+      font-size: 0.85rem; /* 字体也适当缩小 */
+      margin-top: 5px;
+      color: #333;
+      text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+    }
+    
+    .progress {
+      width: 60%; /* 缩短进度条宽度 */
+      height: 10px; /* 缩小进度条高度 */
+      margin: 10px 0 18px 0; /* 缩小上下间距 */
+      background-color: #e0e7ff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1.5px 4px rgba(80, 80, 160, 0.10);
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #6a11cb 0%, #3ecf8e 100%);
+      width: 0%;
+      transition: width 0.5s cubic-bezier(.4,1.4,.6,1);
+      position: relative;
+    }
+    
+    .feedback {
+      position: absolute;
+      left: 50%;
+      bottom: 170px; /* 移到主图下方 */
+      top: auto;
+      transform: translateX(-50%);
+      right: auto;
+      padding: 8px 18px;
+      margin: 0;
+      border-radius: 10px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+      z-index: 5;
+      font-size: 1rem; /* 缩小字号 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(106, 17, 203, 0.7); /* 紫色70%透明 */
+      box-shadow: 0 2px 12px rgba(80, 80, 160, 0.10);
+      color: #fff;
+    }
+    
+    .feedback.correct::before {
+      content: '✔';
+      color: #3ecf8e;
+      font-size: 1.6em;
+      margin-right: 8px;
+    }
+    
+    .feedback.incorrect::before {
+      content: '✖';
+      color: #ff4d4f;
+      font-size: 1.6em;
+      margin-right: 8px;
+    }
+    
+    .result-screen {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    
+    .result-title {
+      font-size: 2rem;
+      color: #6a11cb;
+      margin-bottom: 20px;
+    }
+    
+    .score {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #2575fc;
+      margin: 20px 0;
+    }
+    
+    .score-message {
+      font-size: 1.2rem;
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .question-number {
+      font-weight: bold;
+      color: #6a11cb;
+      margin-bottom: 10px;
+    }
+    
+    .loading-spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid white;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-top: 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .game-screen {
+      position: relative;
+    }
+    
+    .result-emoji {
+      font-size: 3.5rem;
+      margin-bottom: 10px;
+      animation: bounce 1.2s infinite alternate;
+    }
+    
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-18px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 封面页面 -->
+    <div class="cover-screen" id="coverScreen">
+      <button class="btn" id="startBtn" style="margin-top: 120px;">开始游戏</button>
+    </div>
+    
+    <!-- 游戏页面 -->
+    <div class="game-screen" id="gameScreen">
+      <div class="question-number" id="questionNumber">第 1/20 题</div>
+      <div class="progress">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="cosplay-image-wrapper">
+        <img id="cosplayImage" class="cosplay-image" src="/api/placeholder/600/400" alt="Cosplay图片">
+        <img id="cosplayBorder" class="cosplay-border" src="images/cosplay/border.png" alt="边框" style="display:none;">
+      </div>
+      <div class="options" id="options">
+        <!-- 选项会在JavaScript中动态生成 -->
+      </div>
+      
+      <div class="feedback" id="feedback"></div>
+    </div>
+    
+    <!-- 结果页面 -->
+    <div class="result-screen" id="resultScreen">
+      <h2 class="result-title">游戏结束！</h2>
+      <p>你的得分：</p>
+      <div class="score" id="finalScore">0/20</div>
+      <p class="score-message" id="scoreMessage">做得很好！</p>
+      <button class="btn" id="restartBtn">再玩一次</button>
+    </div>
+  </div>
+
+  <script>
+    // 游戏数据 - 这里需要您用自己的数据替换
+    // 格式: {id: 唯一标识, image: 图片路径, answer: 正确角色ID, options: [角色选项数组]}
+    const cosplayImages = [
+  {url: "images/cosplay/Nero (1).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (2).jpg", characterId: 1}, 
+  {url: "images/cosplay/Nero (3).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (4).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (5).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (6).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (7).jpg", characterId: 1}, 
+  {url: "images/cosplay/Nero (8).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (9).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (10).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (11).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (12).jpg", characterId: 1}, 
+  {url: "images/cosplay/Nero (13).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (14).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (15).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (16).jpg", characterId: 1}, 
+  {url: "images/cosplay/Nero (17).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (18).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (19).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (20).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (21).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (22).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (23).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (24).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (25).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (26).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (27).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (28).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (29).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (30).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (31).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (32).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (33).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (34).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (35).jpg", characterId: 1},
+  {url: "images/cosplay/Nero (36).jpg", characterId: 1},
+  {url: "images/cosplay/Soda (1).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (2).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (3).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (4).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (5).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (6).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (7).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (8).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (9).jpg", characterId: 8},
+  {url: "images/cosplay/Soda (10).jpg", characterId: 8},
+  {url: "images/cosplay/Helm (1).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (2).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (3).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (4).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (5).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (6).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (7).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (8).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (9).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (10).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (11).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (12).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (13).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (14).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (15).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (16).jpg", characterId: 9},
+  {url: "images/cosplay/Helm (17).jpg", characterId: 9},
+  {url: "images/cosplay/Mary (1).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (2).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (3).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (4).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (5).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (6).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (7).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (8).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (9).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (10).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (11).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (12).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (13).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (14).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (15).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (16).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (17).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (18).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (19).jpg", characterId: 10},
+  {url: "images/cosplay/Mary (20).jpg", characterId: 10},
+  {url: "images/cosplay/Rupee (1).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (2).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (3).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (4).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (5).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (6).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (7).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (8).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (9).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (10).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (11).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (12).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (13).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (14).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (15).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (16).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (17).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (18).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (19).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (20).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (21).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (22).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (23).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (24).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (25).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (26).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (27).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (28).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (29).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (30).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (31).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (32).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (33).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (34).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (35).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (36).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (37).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (38).jpg", characterId: 12},
+  {url: "images/cosplay/Rupee (39).jpg", characterId: 12},
+  {url: "images/cosplay/Anis (1).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (2).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (3).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (4).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (5).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (6).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (7).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (8).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (9).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (10).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (11).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (12).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (13).jpg", characterId: 11},
+  {url: "images/cosplay/Anis (14).jpg", characterId: 11},
+  {url: "images/cosplay/Viper (1).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (2).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (3).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (4).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (5).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (6).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (7).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (8).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (9).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (10).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (11).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (12).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (13).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (14).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (15).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (16).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (17).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (18).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (19).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (20).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (21).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (22).jpg", characterId: 13},
+  {url: "images/cosplay/Viper (23).jpg", characterId: 13},
+  {url: "images/cosplay/Alice (1).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (2).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (3).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (4).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (5).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (6).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (7).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (8).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (9).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (10).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (11).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (12).jpg", characterId: 14},
+  {url: "images/cosplay/Alice (13).jpg", characterId: 14},
+  {url: "images/cosplay/Helmb (1).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (2).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (3).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (4).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (5).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (6).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (7).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (8).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (9).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (10).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (11).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (12).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (13).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (14).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (15).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (16).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (17).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (18).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (19).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (20).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (21).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (22).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (23).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (24).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (25).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (26).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (27).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (28).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (29).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (30).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (31).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (32).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (33).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (34).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (35).jpg", characterId: 15},
+  {url: "images/cosplay/Helmb (36).jpg", characterId: 15},
+  {url: "images/cosplay/Viperb (1).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (2).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (3).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (4).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (5).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (6).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (7).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (8).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (9).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (10).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (11).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (12).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (13).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (14).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (15).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (16).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (17).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (18).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (19).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (20).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (21).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (22).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (23).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (24).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (25).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (26).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (27).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (28).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (29).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (30).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (31).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (32).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (33).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (34).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (35).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (36).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (37).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (38).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (39).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (40).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (41).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (42).jpg", characterId: 16},
+  {url: "images/cosplay/Viperb (43).jpg", characterId: 16},
+  {url: "images/cosplay/Cinderella (1).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (2).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (3).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (4).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (5).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (6).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (7).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (8).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (9).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (10).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (11).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (12).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (13).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (14).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (15).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (16).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (17).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (18).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (19).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (20).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (21).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (22).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (23).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (24).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (25).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (26).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (27).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (28).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (29).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (30).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (31).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (32).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (33).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (34).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (35).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (36).jpg", characterId: 7},
+  {url: "images/cosplay/Cinderella (37).jpg", characterId: 7},
+
+
+      // 这里您需要添加您的游戏数据
+      // 每张照片对应一个对象
+    ];
+    
+    // 角色数据 - 这里需要您用自己的数据替换
+    const characters = [
+      {id: 1, name: "尼罗\nNero", avatar: "images/avatars/nero.jpg"},
+      {id: 2, name: "米哈拉\nMihara", avatar: "images/avatars/mihara.jpg"},
+      {id: 3, name: "小美人鱼\nLittleMermaid", avatar: "images/avatars/mermaid.jpg"},
+      {id: 4, name: "克劳斯特\nCrust", avatar: "images/avatars/crust.jpg"},
+      {id: 5, name: "布蕾德\nBready", avatar: "images/avatars/bready.jpg"},
+      {id: 6, name: "特蕾娜\nTrina", avatar: "images/avatars/trina.jpg"},
+      {id: 7, name: "灰姑娘\nCinderella", avatar: "images/avatars/cinderella.jpg"},
+      {id: 8, name: "索达\nSoda", avatar: "images/avatars/soda.jpg"},
+      {id: 9, name: "海伦\nHelm", avatar: "images/avatars/helmb.jpg"},
+      {id: 10, name: "梅里\nMary", avatar: "images/avatars/mary.jpg"},
+      {id: 11, name: "阿妮斯\nAnis", avatar: "images/avatars/anis.jpg"},
+      {id: 12, name: "露菲\nRupee", avatar: "images/avatars/rupee.jpg"},
+      {id: 13, name: "毒蛇\nViper", avatar: "images/avatars/viper.jpg"},
+      {id: 14, name: "爱丽丝\nAlice", avatar: "images/avatars/alice.jpg"},
+      {id: 15, name: "海伦\nHelm", avatar: "images/avatars/helmb.jpg"},
+      {id: 16, name: "毒蛇\nViper", avatar: "images/avatars/viperb.jpg"},
+
+      // {id: 角色ID, name: 角色名称, avatar: 角色头像路径}
+    ];
+    
+    const gameData = createGameData(cosplayImages, characters);
+    // 游戏变量
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let questionsPool = [];
+    const totalQuestions = 20;
+    
+    // DOM元素
+    const coverScreen = document.getElementById('coverScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const resultScreen = document.getElementById('resultScreen');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const cosplayImage = document.getElementById('cosplayImage');
+    const optionsContainer = document.getElementById('options');
+    const questionNumberEl = document.getElementById('questionNumber');
+    const progressBar = document.getElementById('progressBar');
+    const feedback = document.getElementById('feedback');
+    const finalScoreEl = document.getElementById('finalScore');
+    const scoreMessageEl = document.getElementById('scoreMessage');
+    
+    // 开始游戏
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    
+    function startGame() {
+      // 重置游戏数据
+      currentQuestionIndex = 0;
+      score = 0;
+      
+      // 从所有问题中随机选择 totalQuestions 个问题
+      questionsPool = getRandomQuestions(gameData, totalQuestions);
+      
+      // 切换到游戏屏幕
+      coverScreen.style.display = 'none';
+      resultScreen.style.display = 'none';
+      gameScreen.style.display = 'flex';
+      
+      // 显示第一个问题
+      showQuestion();
+    }
+    
+    // 获取随机问题
+    function getRandomQuestions(allQuestions, count) {
+      const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, Math.min(count, allQuestions.length));
+    }
+    
+    // 显示当前问题
+    function showQuestion() {
+      if (currentQuestionIndex >= questionsPool.length) {
+        endGame();
+        return;
+      }
+      const question = questionsPool[currentQuestionIndex];
+      // 更新问题号和进度条
+      questionNumberEl.textContent = `第 ${currentQuestionIndex + 1}/${totalQuestions} 题`;
+      progressBar.style.width = `${((currentQuestionIndex + 1) / totalQuestions) * 100}%`;
+      // 加载图片
+      cosplayImage.src = question.image;
+      cosplayImage.alt = `Cosplay图片 ${currentQuestionIndex + 1}`;
+      // 叠加PNG边框（如有）
+      const cosplayBorder = document.getElementById('cosplayBorder');
+      cosplayBorder.style.display = 'block';
+      cosplayBorder.src = 'images/cosplay/border.png'; // 如有多种边框可动态切换
+      // 隐藏上一次的反馈
+      feedback.style.display = 'none';
+      // 清空并生成选项
+      optionsContainer.innerHTML = '';
+      // 从选项中获取角色并显示
+      question.options.forEach(characterId => {
+        const character = characters.find(c => c.id === characterId);
+        if (character) {
+          const optionEl = document.createElement('div');
+          optionEl.className = 'option';
+          optionEl.innerHTML = `
+            <img src="${character.avatar}" alt="${character.name}">
+            <div class="option-name">${character.name}</div>
+          `;
+          optionEl.addEventListener('click', () => checkAnswer(characterId));
+          optionsContainer.appendChild(optionEl);
+        }
+      });
+    }
+    
+    // 结果页面 emoji 动态表情
+function getResultEmoji(score, total) {
+  if (score === total) return '🏆';
+  if (score >= total * 0.8) return '😎';
+  if (score >= total * 0.6) return '😊';
+  if (score >= total * 0.4) return '😐';
+  return '😭';
+}
+
+// 检查答案
+function checkAnswer(selectedCharacterId) {
+  const question = questionsPool[currentQuestionIndex];
+  const isCorrect = selectedCharacterId === question.answer;
+  
+  // 更新分数
+  if (isCorrect) {
+    score++;
+  }
+  
+  // 显示反馈
+  feedback.textContent = isCorrect ? '正确！' : '错误！正确答案是：' + 
+    characters.find(c => c.id === question.answer).name;
+  feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+  feedback.style.display = 'flex';
+  
+  // 选项高亮
+  const options = document.querySelectorAll('.option');
+  options.forEach(option => {
+    option.style.pointerEvents = 'none';
+    option.style.opacity = '0.7';
+    const nameDiv = option.querySelector('.option-name');
+    if (option.innerText === nameDiv.textContent) {
+      if (parseInt(option.querySelector('img').alt) === question.answer || nameDiv.textContent === characters.find(c => c.id === question.answer).name) {
+        option.classList.add('selected-correct');
+      }
+    }
+    if (option.querySelector('img').alt === characters.find(c => c.id === selectedCharacterId).name) {
+      if (!isCorrect) option.classList.add('selected-incorrect');
+      option.style.transform = 'scale(1.15)';
+      setTimeout(() => { option.style.transform = 'scale(1)'; }, 300);
+    }
+  });
+  
+  // 延迟后显示下一题
+  setTimeout(() => {
+    currentQuestionIndex++;
+    showQuestion();
+  }, 1500);
+}
+    
+    // 结束游戏
+    function endGame() {
+      gameScreen.style.display = 'none';
+      resultScreen.style.display = 'flex';
+      // 更新分数
+      finalScoreEl.textContent = `${score}/${totalQuestions}`;
+      // 动态表情
+      let emoji = document.getElementById('resultEmoji');
+      if (!emoji) {
+        emoji = document.createElement('div');
+        emoji.id = 'resultEmoji';
+        emoji.className = 'result-emoji';
+        resultScreen.insertBefore(emoji, resultScreen.firstChild);
+      }
+      emoji.textContent = getResultEmoji(score, totalQuestions);
+      // 根据分数显示不同消息
+      if (score === totalQuestions) {
+        scoreMessageEl.textContent = '太厉害了！你是真正的指挥官！';
+      } else if (score >= totalQuestions * 0.8) {
+        scoreMessageEl.textContent = '非常棒！你对妮姬角色很了解！';
+      } else if (score >= totalQuestions * 0.6) {
+        scoreMessageEl.textContent = '不错的表现！继续加油！';
+      } else if (score >= totalQuestions * 0.4) {
+        scoreMessageEl.textContent = '还可以，再多努力吧！';
+      } else {
+        scoreMessageEl.textContent = '加油！多多学习！';
+      }
+    }
+    
+    // 加载下一题的图片，预加载以提高用户体验
+    function preloadNextImage() {
+      if (currentQuestionIndex + 1 < questionsPool.length) {
+        const nextImage = new Image();
+        nextImage.src = questionsPool[currentQuestionIndex + 1].image;
+      }
+    }
+    
+    // 辅助函数：创建游戏数据的帮助函数
+    function createGameData(cosplayImages, charactersData) {
+      const data = [];
+      
+      cosplayImages.forEach((image, index) => {
+        // 为每个图片创建一个问题对象
+        const correctCharacterId = image.characterId;
+        
+        // 从所有角色中选择两个错误选项
+        const otherCharacters = charactersData
+          .filter(char => char.id !== correctCharacterId)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 2);
+          
+        // 组合所有选项并随机排序
+        const options = [correctCharacterId, ...otherCharacters.map(c => c.id)]
+          .sort(() => 0.5 - Math.random());
+          
+        // 创建问题对象
+        data.push({
+          id: index + 1,
+          image: image.url,
+          answer: correctCharacterId,
+          options: options
+        });
+      });
+      
+      return data;
+    }
+    
+    // 键盘快捷键支持
+window.addEventListener('keydown', function(e) {
+  if (gameScreen.style.display === 'flex') {
+    if (e.key >= '1' && e.key <= '9') {
+      const idx = parseInt(e.key) - 1;
+      const opts = document.querySelectorAll('.option');
+      if (opts[idx]) opts[idx].click();
+    }
+  }
+  if (resultScreen.style.display === 'flex' && (e.key === 'Enter' || e.key === ' ')) {
+    restartBtn.click();
+  }
+});
+  </script>
+</body>
+</html>
